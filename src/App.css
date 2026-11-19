@@ -848,3 +848,16 @@ label > input[type='checkbox'] {
 .add-vehicle-form > h2 {
   margin: 0;
 }
+
+.danger-action {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  margin-top: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: white;
+  color: #b91c1c;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}

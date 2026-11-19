@@ -32,10 +32,14 @@ export function BackupSection() {
   const [status, setStatus] = useState<Status>(null)
   /** iPhone: vorbereitete Datei, die mit dem zweiten Tipp geteilt wird */
   const [prepared, setPrepared] = useState<PreparedBackup | null>(null)
-  const [safetyCopyDate, setSafetyCopyDate] = useState<string | null>(null)
+  const [safetyCopy, setSafetyCopy] = useState<{ date: string; reason: string } | null>(null)
 
   useEffect(() => {
-    void getSafetyCopy().then((copy) => setSafetyCopyDate(copy?.createdAt ?? null))
+    void getSafetyCopy().then((copy) =>
+      setSafetyCopy(
+        copy ? { date: copy.createdAt, reason: copy.reason ?? 'dem letzten Import' } : null,
+      ),
+    )
   }, [])
 
   const handleExport = async () => {
@@ -87,7 +91,7 @@ export function BackupSection() {
           `${describeCounts(countTables(backup))}\n\n` +
           'ACHTUNG: Alle aktuellen Daten in der App werden dadurch ersetzt. ' +
           'Der jetzige Stand wird vorher in der App zwischengespeichert und lässt sich ' +
-          'mit „Import rückgängig machen“ zurückholen.',
+          'mit „Rückgängig machen“ zurückholen.',
       )
       if (!confirmed) return
 
@@ -108,10 +112,10 @@ export function BackupSection() {
   }
 
   const handleUndo = async () => {
-    if (!safetyCopyDate) return
+    if (!safetyCopy) return
     const confirmed = window.confirm(
-      `Den Stand vom ${formatDate(safetyCopyDate)} (vor dem letzten Import) wiederherstellen?\n\n` +
-        'Alles, was seit dem Import eingetragen wurde, geht dabei verloren.',
+      `Den Stand vom ${formatDate(safetyCopy.date)} (vor ${safetyCopy.reason}) wiederherstellen?\n\n` +
+        'Alles, was seitdem eingetragen wurde, geht dabei verloren.',
     )
     if (!confirmed) return
 
@@ -185,11 +189,13 @@ export function BackupSection() {
         </p>
       )}
 
-      {safetyCopyDate && !prepared && (
+      {safetyCopy && !prepared && (
         <div className="backup-undo">
-          <span>Stand vor dem letzten Import ({formatDate(safetyCopyDate)}) ist gespeichert.</span>
+          <span>
+            Stand vor {safetyCopy.reason} ({formatDate(safetyCopy.date)}) ist gespeichert.
+          </span>
           <button disabled={busy} onClick={() => void handleUndo()}>
-            Import rückgängig machen
+            Rückgängig machen
           </button>
         </div>
       )}

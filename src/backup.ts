@@ -191,7 +191,13 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
 /* gemacht werden kann (ohne Datei, ohne Teilen-Menü).                 */
 /* ------------------------------------------------------------------ */
 
-type SafetyCopy = { id: 'vor-import'; createdAt: string; backup: BackupFile }
+type SafetyCopy = {
+  id: 'vor-import'
+  createdAt: string
+  /** Wovor gesichert wurde, z. B. „dem letzten Import“ */
+  reason?: string
+  backup: BackupFile
+}
 
 class SafetyDatabase extends Dexie {
   copies!: Table<SafetyCopy, string>
@@ -207,17 +213,46 @@ export async function getSafetyCopy(): Promise<SafetyCopy | undefined> {
   return safetyDb.copies.get('vor-import')
 }
 
-/** Spielt eine Sicherung ein und legt vorher den jetzigen Stand als Sicherheitskopie ab. */
-export async function importWithSafetyCopy(backup: BackupFile): Promise<void> {
+/**
+ * Sichert den jetzigen Stand als Sicherheitskopie und führt dann die Änderung aus.
+ * `reason` erscheint später im Hinweis, z. B. „dem Löschen von Vespa PX80“.
+ */
+export async function withSafetyCopy(reason: string, change: () => Promise<void>): Promise<void> {
   const current = await createBackup()
-  await safetyDb.copies.put({ id: 'vor-import', createdAt: current.exportedAt, backup: current })
-  await restoreBackup(backup)
+  await safetyDb.copies.put({ id: 'vor-import', createdAt: current.exportedAt, reason, backup: current })
+  await change()
 }
 
-/** Stellt den Stand vor dem letzten Import wieder her und entfernt die Kopie. */
+/** Spielt eine Sicherung ein und legt vorher den jetzigen Stand als Sicherheitskopie ab. */
+export async function importWithSafetyCopy(backup: BackupFile): Promise<void> {
+  await withSafetyCopy('dem letzten Import', () => restoreBackup(backup))
+}
+
+/** Stellt den gesicherten Stand wieder her und entfernt die Kopie. */
 export async function undoLastImport(): Promise<void> {
   const copy = await getSafetyCopy()
   if (!copy) throw new Error('Es gibt keine Sicherheitskopie.')
   await restoreBackup(copy.backup)
   await safetyDb.copies.delete('vor-import')
+}
+
+/** Löscht ein Fahrzeug samt aller zugehörigen Einträge (alles oder nichts). */
+export async function deleteVehicleWithEntries(vehicleId: string): Promise<void> {
+  await db.transaction('rw', TABLE_NAMES.map((name) => db.table(name)), async () => {
+    for (const name of TABLE_NAMES) {
+      if (name === 'vehicles') continue
+      await db.table(name).where('vehicleId').equals(vehicleId).delete()
+    }
+    await db.vehicles.delete(vehicleId)
+  })
+}
+
+/** Zählt, wie viele Einträge zu einem Fahrzeug gehören. */
+export async function countVehicleEntries(vehicleId: string): Promise<Partial<BackupCounts>> {
+  const counts: Partial<BackupCounts> = {}
+  for (const name of TABLE_NAMES) {
+    if (name === 'vehicles') continue
+    counts[name] = await db.table(name).where('vehicleId').equals(vehicleId).count()
+  }
+  return counts
 }

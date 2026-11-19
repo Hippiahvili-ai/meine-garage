@@ -14,6 +14,12 @@ import {
 import { BackupSection } from './BackupSection'
 import { AddVehicleForm } from './AddVehicleForm'
 import { readPhotoResized } from './photo'
+import {
+  TABLE_LABELS,
+  countVehicleEntries,
+  deleteVehicleWithEntries,
+  withSafetyCopy,
+} from './backup'
 
 /** Heutiges Datum als JJJJ-MM-TT in deutscher Ortszeit (nicht UTC). */
 const todayLocal = () => {
@@ -1224,6 +1230,50 @@ const deleteFuelEntry = async (entry: FuelEntry) => {
 
   setFuelEntries(updatedFuelEntries)
 }
+const deleteSelectedVehicle = async () => {
+  if (!selectedVehicle) {
+    return
+  }
+
+  const vehicle = selectedVehicle
+  const counts = await countVehicleEntries(vehicle.id)
+  const total = Object.values(counts).reduce((a, b) => a + (b ?? 0), 0)
+  const details = (Object.keys(counts) as (keyof typeof counts)[])
+    .filter((name) => (counts[name] ?? 0) > 0)
+    .map((name) => `${TABLE_LABELS[name]}: ${counts[name]}`)
+    .join('\n')
+
+  const confirmed = window.confirm(
+    `„${vehicle.name}“ wirklich löschen?\n\n` +
+      (total > 0
+        ? `Dabei werden auch alle zugehörigen Einträge gelöscht:\n${details}\n\n`
+        : 'Zu diesem Fahrzeug gibt es keine Einträge.\n\n') +
+      'Der jetzige Stand wird vorher gesichert und lässt sich unten auf der ' +
+      'Startseite mit „Rückgängig machen“ zurückholen.',
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  await withSafetyCopy(`dem Löschen von „${vehicle.name}“`, () =>
+    deleteVehicleWithEntries(vehicle.id),
+  )
+
+  const keep = <T extends { vehicleId: string }>(entries: T[]) =>
+    entries.filter((entry) => entry.vehicleId !== vehicle.id)
+
+  setVehicles((current) => current.filter((v) => v.id !== vehicle.id))
+  setMileageHistory(keep)
+  setWorkEntries(keep)
+  setTripEntries(keep)
+  setFuelEntries(keep)
+  setPurchaseEntries(keep)
+  setIsEditing(false)
+  setSelectedVehicle(null)
+  window.scrollTo(0, 0)
+}
+
 const saveVehicleChanges = async () => {
     if (!selectedVehicle) {
       return
@@ -1925,6 +1975,13 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
               onClick={saveVehicleChanges}
             >
               Fahrzeugdaten speichern
+            </button>
+
+            <button
+              className="danger-action"
+              onClick={() => void deleteSelectedVehicle()}
+            >
+              Fahrzeug löschen
             </button>
           </section>
         )}
@@ -3337,11 +3394,11 @@ km
         />
       )}
 <section className="vehicle-data">
-  <h2>Dashboard</h2>
+  <h2>Dashboard Freizeit</h2>
 
   <div className="vehicle-data-grid">
     <div>
-      <span>Fahrzeuge</span>
+      <span>Freizeitfahrzeuge</span>
      <strong>
   {
     vehicles.filter(
