@@ -788,3 +788,63 @@ label > input[type='checkbox'] {
 .edit-area select {
   min-height: 44px;
 }
+
+/* --- Fahrzeug hinzufügen --- */
+
+.add-vehicle-form {
+  margin-bottom: 28px;
+}
+
+.icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.icon-picker > div {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.icon-option {
+  min-height: 48px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.icon-option-active {
+  border: 2px solid #171717;
+  background: #f3f4f6;
+}
+
+.add-vehicle-photo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.add-vehicle-hint {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.add-vehicle-form > h2,
+.add-vehicle-form > .icon-picker,
+.add-vehicle-form > .add-vehicle-hint,
+.add-vehicle-form > .add-vehicle-photo,
+.add-vehicle-form > .backup-status,
+.add-vehicle-form > .backup-actions {
+  grid-column: 1 / -1;
+}
+
+.add-vehicle-form > h2 {
+  margin: 0;
+}

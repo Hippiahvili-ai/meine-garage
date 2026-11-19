@@ -12,6 +12,8 @@ import {
   type WorkType,
 } from './db'
 import { BackupSection } from './BackupSection'
+import { AddVehicleForm } from './AddVehicleForm'
+import { readPhotoResized } from './photo'
 
 /** Heutiges Datum als JJJJ-MM-TT in deutscher Ortszeit (nicht UTC). */
 const todayLocal = () => {
@@ -1800,15 +1802,11 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
         return
       }
 
-      const reader = new FileReader()
-
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setEditPhoto(reader.result)
-        }
-      }
-
-      reader.readAsDataURL(file)
+      readPhotoResized(file)
+        .then(setEditPhoto)
+        .catch(() =>
+          window.alert('Das Foto konnte nicht gelesen werden.'),
+        )
     }}
   />
   {editPhoto && (
@@ -3318,26 +3316,26 @@ km
 
         <button
   className="add-button"
+  aria-label={isAddVehicleFormOpen ? 'Formular schließen' : 'Fahrzeug hinzufügen'}
   onClick={() =>
     setIsAddVehicleFormOpen(!isAddVehicleFormOpen)
   }
 >
-  +
+  {isAddVehicleFormOpen ? '×' : '+'}
 </button>
       </header>
 
-      <section className="quick-actions">
-        <button className="primary-action">
-          <span>▶</span>
-          Fahrt starten
-        </button>
-
-        <button className="secondary-action">
-          <span>＋</span>
-          Eintrag
-        </button>
-      
-      </section>
+      {isAddVehicleFormOpen && (
+        <AddVehicleForm
+          onAdded={(vehicle) => {
+            setVehicles((current) => [...current, vehicle])
+            setIsAddVehicleFormOpen(false)
+            setSelectedVehicle(vehicle)
+            window.scrollTo(0, 0)
+          }}
+          onCancel={() => setIsAddVehicleFormOpen(false)}
+        />
+      )}
 <section className="vehicle-data">
   <h2>Dashboard</h2>
 
