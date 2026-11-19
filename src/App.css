@@ -644,3 +644,59 @@ h1 {
   font-size: 1.35rem;
   font-weight: 700;
 }
+.backup-section {
+  margin-top: 34px;
+  padding: 18px;
+  background: white;
+  border: 1px solid #e7e7e7;
+  border-radius: 18px;
+}
+
+.backup-section h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.backup-section > p {
+  margin: 0 0 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.backup-actions button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.backup-actions button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.backup-actions span {
+  margin-right: 6px;
+}
+
+.backup-status {
+  margin: 12px 0 0;
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.backup-status-ok {
+  color: #15803d;
+}
+
+.backup-status-error {
+  color: #b91c1c;
+}

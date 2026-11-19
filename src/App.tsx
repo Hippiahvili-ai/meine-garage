@@ -11,6 +11,7 @@ import {
   type PurchaseEntry,
   type WorkType,
 } from './db'
+import { BackupSection } from './BackupSection'
 
 
 const initialVehicles: VehicleRecord[] = [
@@ -3434,6 +3435,8 @@ km
           </section>
         )
       })}
+
+      <BackupSection />
     </main>
   )
 }
