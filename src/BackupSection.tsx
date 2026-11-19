@@ -25,7 +25,11 @@ export function BackupSection() {
     setBusy(true)
     setStatus(null)
     try {
-      const counts = await downloadBackup()
+      const { counts, saved } = await downloadBackup()
+      if (!saved) {
+        setStatus({ kind: 'error', text: 'Export abgebrochen – nichts gespeichert.' })
+        return
+      }
       const total = Object.values(counts).reduce((a, b) => a + b, 0)
       setStatus({ kind: 'ok', text: `Sicherung erstellt (${total} Einträge).` })
     } catch (error) {
@@ -55,7 +59,15 @@ export function BackupSection() {
       if (!confirmed) return
 
       setBusy(true)
-      await downloadBackup()
+      const safety = await downloadBackup()
+      if (!safety.saved) {
+        setStatus({
+          kind: 'error',
+          text: 'Import abgebrochen: Der aktuelle Stand wurde nicht gesichert, daher wurde nichts ersetzt.',
+        })
+        setBusy(false)
+        return
+      }
       await restoreBackup(backup)
       window.location.reload()
     } catch (error) {

@@ -56,23 +56,55 @@ export async function createBackup(): Promise<BackupFile> {
   }
 }
 
-/** Erzeugt die Sicherung und lädt sie als .json-Datei herunter. */
-export async function downloadBackup(): Promise<BackupCounts> {
+export type ExportResult = {
+  counts: BackupCounts
+  /** false, wenn das Teilen-Menü ohne Speichern geschlossen wurde. */
+  saved: boolean
+}
+
+/** Mobilgerät mit Touch (iPhone/iPad) – dort ist das Teilen-Menü der Weg zu „Dateien“. */
+const prefersShareSheet = () =>
+  window.matchMedia('(pointer: coarse)').matches && typeof navigator.share === 'function'
+
+/**
+ * Erzeugt die Sicherung und gibt sie als .json-Datei aus:
+ * auf dem iPhone über das Teilen-Menü („In Dateien sichern“, iCloud, Mail …),
+ * am Rechner als normaler Download.
+ */
+export async function downloadBackup(): Promise<ExportResult> {
   const backup = await createBackup()
+  const counts = countTables(backup)
   const json = JSON.stringify(backup, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
 
   const stamp = backup.exportedAt.slice(0, 16).replace('T', '_').replace(':', '-')
+  const fileName = `meine-garage-backup_${stamp}.json`
+
+  if (prefersShareSheet()) {
+    const file = new File([json], fileName, { type: 'application/json' })
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Meine Garage – Sicherung' })
+        return { counts, saved: true }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return { counts, saved: false }
+        }
+        // z. B. NotAllowedError → auf normalen Download ausweichen
+        console.warn('Teilen nicht möglich, nutze Download', error)
+      }
+    }
+  }
+
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = `meine-garage-backup_${stamp}.json`
+  link.download = fileName
   document.body.appendChild(link)
   link.click()
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 
-  return countTables(backup)
+  return { counts, saved: true }
 }
 
 export function countTables(backup: BackupFile): BackupCounts {

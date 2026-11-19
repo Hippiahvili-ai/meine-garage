@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#171717"/>
+  <!-- Garagendach -->
+  <path d="M96 214 L256 112 L416 214" fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Auto -->
+  <path d="M150 330 L176 274 Q184 256 204 256 L308 256 Q328 256 336 274 L362 330 Z" fill="#f6f6f4"/>
+  <rect x="124" y="322" width="264" height="58" rx="22" fill="#f6f6f4"/>
+  <path d="M190 318 L204 284 Q207 278 214 278 L298 278 Q305 278 308 284 L322 318 Z" fill="#171717"/>
+  <circle cx="186" cy="384" r="30" fill="#171717"/>
+  <circle cx="186" cy="384" r="18" fill="#f6f6f4"/>
+  <circle cx="326" cy="384" r="30" fill="#171717"/>
+  <circle cx="326" cy="384" r="18" fill="#f6f6f4"/>
+</svg>

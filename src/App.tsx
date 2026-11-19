@@ -2105,9 +2105,9 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
 <label>
   Kosten
   <input
-    type="number"
+    type="text"
+    inputMode="decimal"
     min="0"
-    step="0.01"
     value={purchaseCost}
     onChange={(event) =>
       setPurchaseCost(event.target.value)
@@ -2205,9 +2205,8 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
 <label>
   Liter
   <input
-    type="number"
+    type="text"
     inputMode="decimal"
-    step="0.01"
     placeholder="z. B. 42,5"
     value={fuelLiters}
     onChange={(event) =>
@@ -2231,9 +2230,8 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
 <label>
   Preis pro Liter
   <input
-    type="number"
+    type="text"
     inputMode="decimal"
-    step="0.001"
     placeholder="z. B. 2,699"
     value={fuelPricePerLiter}
     onChange={(event) =>
@@ -2495,8 +2493,7 @@ latestFuelStats.costPer100Km !== null ? (
             <label>
               Teilekosten
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 inputMode="decimal"
                 placeholder="0,00"
                 value={workPartsCost}
@@ -2509,8 +2506,7 @@ latestFuelStats.costPer100Km !== null ? (
             <label>
               Arbeitskosten
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 inputMode="decimal"
                 placeholder="0,00"
                 value={workLaborCost}
@@ -2523,8 +2519,7 @@ latestFuelStats.costPer100Km !== null ? (
             <label>
               Sonstige Kosten
               <input
-                type="number"
-                step="0.01"
+                type="text"
                 inputMode="decimal"
                 placeholder="0,00"
                 value={workOtherCost}
@@ -2658,6 +2653,7 @@ km
     Start-km
     <input
       type="number"
+      inputMode="numeric"
       min="0"
       value={tripStartMileage}
       onChange={(event) =>
@@ -2674,6 +2670,7 @@ km
     : 'End-km'}
   <input
     type="number"
+    inputMode="numeric"
     min="0"
     value={tripEndMileage}
     onChange={(event) =>
