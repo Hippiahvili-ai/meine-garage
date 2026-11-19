@@ -1,3 +1,4 @@
+import Dexie, { type Table } from 'dexie'
 import { db } from './db'
 
 /**
@@ -56,55 +57,67 @@ export async function createBackup(): Promise<BackupFile> {
   }
 }
 
-export type ExportResult = {
-  counts: BackupCounts
-  /** false, wenn das Teilen-Menü ohne Speichern geschlossen wurde. */
-  saved: boolean
+/** Zeitstempel für Dateinamen in Ortszeit: 2026-11-19_13-30 */
+const fileStamp = (date: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`
 }
 
-/** Mobilgerät mit Touch (iPhone/iPad) – dort ist das Teilen-Menü der Weg zu „Dateien“. */
-const prefersShareSheet = () =>
-  window.matchMedia('(pointer: coarse)').matches && typeof navigator.share === 'function'
+export type PreparedBackup = {
+  file: File
+  counts: BackupCounts
+}
+
+/** Liest alle Daten und packt sie in eine .json-Datei (noch nicht gespeichert). */
+export async function prepareBackupFile(): Promise<PreparedBackup> {
+  const backup = await createBackup()
+  const json = JSON.stringify(backup, null, 2)
+  const file = new File([json], `meine-garage-backup_${fileStamp(new Date())}.json`, {
+    type: 'application/json',
+  })
+  return { file, counts: countTables(backup) }
+}
 
 /**
- * Erzeugt die Sicherung und gibt sie als .json-Datei aus:
- * auf dem iPhone über das Teilen-Menü („In Dateien sichern“, iCloud, Mail …),
- * am Rechner als normaler Download.
+ * iPhone/iPad: Das Teilen-Menü („In Dateien sichern“, iCloud, Mail …) ist der
+ * richtige Weg. iOS öffnet es nur direkt nach einem Fingertipp – deshalb wird die
+ * Datei vorher mit prepareBackupFile() erzeugt und hier ohne Wartezeit geteilt.
  */
-export async function downloadBackup(): Promise<ExportResult> {
-  const backup = await createBackup()
-  const counts = countTables(backup)
-  const json = JSON.stringify(backup, null, 2)
+export function canUseShareSheet(file?: File): boolean {
+  if (!window.matchMedia('(pointer: coarse)').matches) return false
+  if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') {
+    return false
+  }
+  const probe = file ?? new File(['{}'], 'test.json', { type: 'application/json' })
+  return navigator.canShare({ files: [probe] })
+}
 
-  const stamp = backup.exportedAt.slice(0, 16).replace('T', '_').replace(':', '-')
-  const fileName = `meine-garage-backup_${stamp}.json`
-
-  if (prefersShareSheet()) {
-    const file = new File([json], fileName, { type: 'application/json' })
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Meine Garage – Sicherung' })
-        return { counts, saved: true }
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return { counts, saved: false }
-        }
-        // z. B. NotAllowedError → auf normalen Download ausweichen
-        console.warn('Teilen nicht möglich, nutze Download', error)
+/**
+ * Gibt die Datei aus. MUSS direkt im Klick-Handler aufgerufen werden (kein await davor).
+ * Ergebnis: true = gespeichert/weitergegeben, false = vom Nutzer abgebrochen.
+ */
+export async function saveBackupFile(file: File): Promise<boolean> {
+  if (canUseShareSheet(file)) {
+    try {
+      await navigator.share({ files: [file], title: 'Meine Garage – Sicherung' })
+      return true
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return false
       }
+      console.warn('Teilen nicht möglich, nutze Download', error)
     }
   }
 
-  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
+  const url = URL.createObjectURL(file)
   const link = document.createElement('a')
   link.href = url
-  link.download = fileName
+  link.download = file.name
   document.body.appendChild(link)
   link.click()
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
-
-  return { counts, saved: true }
+  return true
 }
 
 export function countTables(backup: BackupFile): BackupCounts {
@@ -170,4 +183,41 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
       await table.bulkAdd(backup.tables[name])
     }
   })
+}
+
+/* ------------------------------------------------------------------ */
+/* Sicherheitskopie vor einem Import – liegt in einer eigenen,         */
+/* getrennten Datenbank auf dem Gerät, damit ein Import rückgängig     */
+/* gemacht werden kann (ohne Datei, ohne Teilen-Menü).                 */
+/* ------------------------------------------------------------------ */
+
+type SafetyCopy = { id: 'vor-import'; createdAt: string; backup: BackupFile }
+
+class SafetyDatabase extends Dexie {
+  copies!: Table<SafetyCopy, string>
+  constructor() {
+    super('MeineGarageSicherheitskopie')
+    this.version(1).stores({ copies: 'id' })
+  }
+}
+
+const safetyDb = new SafetyDatabase()
+
+export async function getSafetyCopy(): Promise<SafetyCopy | undefined> {
+  return safetyDb.copies.get('vor-import')
+}
+
+/** Spielt eine Sicherung ein und legt vorher den jetzigen Stand als Sicherheitskopie ab. */
+export async function importWithSafetyCopy(backup: BackupFile): Promise<void> {
+  const current = await createBackup()
+  await safetyDb.copies.put({ id: 'vor-import', createdAt: current.exportedAt, backup: current })
+  await restoreBackup(backup)
+}
+
+/** Stellt den Stand vor dem letzten Import wieder her und entfernt die Kopie. */
+export async function undoLastImport(): Promise<void> {
+  const copy = await getSafetyCopy()
+  if (!copy) throw new Error('Es gibt keine Sicherheitskopie.')
+  await restoreBackup(copy.backup)
+  await safetyDb.copies.delete('vor-import')
 }

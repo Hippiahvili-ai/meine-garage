@@ -13,6 +13,16 @@ import {
 } from './db'
 import { BackupSection } from './BackupSection'
 
+/** Heutiges Datum als JJJJ-MM-TT in deutscher Ortszeit (nicht UTC). */
+const todayLocal = () => {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** Zahl für ein Eingabefeld: 42.5 → "42,5" */
+const toInputNumber = (value: number) => String(value).replace('.', ',')
+
 
 const initialVehicles: VehicleRecord[] = [
   {
@@ -167,7 +177,7 @@ const [isAddVehicleFormOpen, setIsAddVehicleFormOpen] =
   const [editingTripId, setEditingTripId] =
   useState<string | null>(null)
   const [tripDate, setTripDate] = useState(
-  new Date().toISOString().slice(0, 10),
+  todayLocal(),
 )
 const [tripStartMileage, setTripStartMileage] =
   useState('')
@@ -181,7 +191,7 @@ const [tripStartMileage, setTripStartMileage] =
   useState('')
   const [mileageInput, setMileageInput] = useState('')
   const [mileageDate, setMileageDate] = useState(
-    new Date().toISOString().slice(0, 10),
+    todayLocal(),
   )
   const [mileageSource, setMileageSource] =
   useState<MileageSource | ''>('')
@@ -204,7 +214,7 @@ const [tripStartMileage, setTripStartMileage] =
 const [editingPurchaseId, setEditingPurchaseId] =
   useState<string | null>(null)
   const [purchaseDate, setPurchaseDate] = useState(
-  new Date().toISOString().slice(0, 10),
+  todayLocal(),
 )
  const [purchaseTitle, setPurchaseTitle] = useState('') 
  const [purchaseItems, setPurchaseItems] = useState('')
@@ -215,7 +225,7 @@ const [editingPurchaseId, setEditingPurchaseId] =
   const [editingFuelId, setEditingFuelId] =
   useState<string | null>(null)
  const [fuelDate, setFuelDate] = useState(
-  new Date().toISOString().slice(0, 10),
+  todayLocal(),
 )
 const [fuelMileage, setFuelMileage] = useState('')
 const [fuelLiters, setFuelLiters] = useState('')
@@ -232,7 +242,7 @@ const [costMonth, setCostMonth] = useState('all')
 
   const [workType, setWorkType] = useState<WorkType>('Eigenarbeit')
   const [workDate, setWorkDate] = useState(
-    new Date().toISOString().slice(0, 10),
+    todayLocal(),
   )
   const [workMileage, setWorkMileage] = useState('')
   const [workTitle, setWorkTitle] = useState('')
@@ -430,6 +440,10 @@ const latestFuelStats = (() => {
         .sort((a, b) => b.date.localeCompare(a.date))
     : []
 
+  const fuelTotalAllTime = selectedFuelEntries.reduce(
+    (sum, entry) => sum + entry.totalCost,
+    0,
+  )
   const workTotal = selectedWorkEntries.reduce(
     (sum, entry) =>
       sum + entry.partsCost + entry.laborCost + entry.otherCost,
@@ -610,7 +624,7 @@ const filteredWorkTotal = filteredWorkEntries.reduce(
   const resetWorkForm = () => {
     setEditingWorkId(null)
     setWorkType('Eigenarbeit')
-    setWorkDate(new Date().toISOString().slice(0, 10))
+    setWorkDate(todayLocal())
     setWorkMileage('')
     setWorkTitle('')
     setWorkDescription('')
@@ -653,7 +667,7 @@ const filteredWorkTotal = filteredWorkEntries.reduce(
 const resetMileageForm = () => {
   setEditingMileageId(null)
   setMileageInput('')
-  setMileageDate(new Date().toISOString().slice(0, 10))
+  setMileageDate(todayLocal())
   setMileageSource('')
   setMileageNote('')
 }
@@ -724,15 +738,15 @@ setIsTripFormOpen(false)
   setWorkWorkshop(entry.workshop)
 
   setWorkPartsCost(
-    entry.partsCost !== 0 ? String(entry.partsCost) : '',
+    entry.partsCost !== 0 ? toInputNumber(entry.partsCost) : '',
   )
 
   setWorkLaborCost(
-    entry.laborCost !== 0 ? String(entry.laborCost) : '',
+    entry.laborCost !== 0 ? toInputNumber(entry.laborCost) : '',
   )
 
   setWorkOtherCost(
-    entry.otherCost !== 0 ? String(entry.otherCost) : '',
+    entry.otherCost !== 0 ? toInputNumber(entry.otherCost) : '',
   )
 
   setIsWorkFormOpen(true)
@@ -895,7 +909,7 @@ if (linkedTripEntry) {
 }
 const resetTripForm = () => {
   setEditingTripId(null)
-  setTripDate(new Date().toISOString().slice(0, 10))
+  setTripDate(todayLocal())
   setTripStartMileage(
   latestMileage !== null ? String(latestMileage) : '',
 )
@@ -1106,7 +1120,7 @@ setMileageHistory((currentHistory) => [
 ])
 }
   setEditingTripId(null)
-  setTripDate(new Date().toISOString().slice(0, 10))
+  setTripDate(todayLocal())
   setTripStartMileage('')
   setTripEndMileage('')
   setTripStartLocation('')
@@ -1161,7 +1175,7 @@ const updatedFuelEntries =
   await db.fuelEntries.toArray()
 
 setFuelEntries(updatedFuelEntries)
-  setFuelDate(new Date().toISOString().slice(0, 10))
+  setFuelDate(todayLocal())
 setFuelMileage('')
 setFuelLiters('')
 setFuelTotalCost('')
@@ -1182,9 +1196,9 @@ const startEditingFuel = (entry: FuelEntry) => {
   setEditingFuelId(entry.id)
   setFuelDate(entry.date)
   setFuelMileage(String(entry.mileage))
-  setFuelLiters(String(entry.liters))
+  setFuelLiters(toInputNumber(entry.liters))
   setFuelTotalCost(String(entry.totalCost))
-  setFuelPricePerLiter(String(entry.pricePerLiter))
+  setFuelPricePerLiter(toInputNumber(entry.pricePerLiter))
   setFuelType(entry.fuelType)
   setFuelFullTank(entry.fullTank)
   setFuelNote(entry.note)
@@ -1404,7 +1418,7 @@ const saveVehicleChanges = async () => {
     : [...currentEntries, newPurchaseEntry],
 )
 
-  setPurchaseDate(new Date().toISOString().slice(0, 10))
+  setPurchaseDate(todayLocal())
   setPurchaseTitle('')
   setPurchaseItems('')
   setPurchaseCost('')
@@ -1418,7 +1432,7 @@ const startEditingPurchase = (entry: PurchaseEntry) => {
   setPurchaseDate(entry.date)
   setPurchaseTitle(entry.title)
   setPurchaseItems(entry.items)
-  setPurchaseCost(String(entry.cost))
+  setPurchaseCost(toInputNumber(entry.cost))
   setPurchaseVendor(entry.vendor)
   setPurchaseNote(entry.note)
 
@@ -3066,8 +3080,8 @@ km
               </article>
 
               <article className="detail-card">
-                <h3>Kosten</h3>
-                <p>{formatCurrency(workTotal)}</p>
+                <h3>Kosten gesamt</h3>
+                <p>{formatCurrency(workTotal + fuelTotalAllTime)}</p>
               </article>
             </>
           )}
@@ -3106,8 +3120,8 @@ km
               </article>
 
               <article className="detail-card">
-                <h3>Kosten</h3>
-                <p>{formatCurrency(workTotal)}</p>
+                <h3>Kosten gesamt</h3>
+                <p>{formatCurrency(workTotal + fuelTotalAllTime)}</p>
               </article>
 
               <article className="detail-card">

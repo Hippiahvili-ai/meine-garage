@@ -700,3 +700,91 @@ h1 {
 .backup-status-error {
   color: #b91c1c;
 }
+
+.backup-prepared > p {
+  margin: 0 0 12px;
+  color: #171717;
+  line-height: 1.5;
+}
+
+.backup-undo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e7e7e7;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.backup-undo button {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  color: #b91c1c;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+/* --- Tippflächen fürs iPhone (mind. 44 Punkte) --- */
+
+.back-button {
+  min-height: 44px;
+  padding: 0 12px 0 0;
+}
+
+.entry-edit-button,
+.entry-delete-button,
+.trip-edit-button,
+.trip-delete-button {
+  min-height: 44px;
+  min-width: 96px;
+  padding: 0 16px;
+}
+
+/* Bearbeiten und Löschen nicht direkt nebeneinander „verwechselbar“ */
+.entry-delete-button,
+.trip-delete-button {
+  margin-left: 12px;
+}
+
+.cost-filter-card select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: white;
+  color: #171717;
+  font-weight: 650;
+}
+
+/* Häkchen links neben seinem Text statt darüber */
+label:has(> input[type='checkbox']) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+label > input[type='checkbox'] {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: #171717;
+}
+
+.edit-button,
+.action-button,
+.edit-area select {
+  min-height: 44px;
+}
