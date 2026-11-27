@@ -14,6 +14,7 @@ import {
 import { BackupSection } from './BackupSection'
 import { AddVehicleForm } from './AddVehicleForm'
 import { StartReminders } from './StartReminders'
+import { moveVehicle, sortVehicles } from './vehicleOrder'
 import { collectDueItems, dueStatus } from './reminders'
 import { readPhotoResized } from './photo'
 import {
@@ -156,6 +157,8 @@ function App() {
     useState<VehicleRecord | null>(null)
 
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
+  /** Bereich, dessen Reihenfolge gerade geändert wird */
+  const [sortingSection, setSortingSection] = useState<string | null>(null)
   const [mileageHistory, setMileageHistory] = useState<MileageEntry[]>([])
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>([])
   const [tripEntries, setTripEntries] = useState<TripEntry[]>([])
@@ -3406,7 +3409,119 @@ km
           window.scrollTo(0, 0)
         }}
       />
-<section className="vehicle-data">
+      {sections.map((section) => {
+        const sectionVehicles = sortVehicles(
+          vehicles.filter((vehicle) => vehicle.category === section),
+        )
+        const isSorting = sortingSection === section
+
+        const move = (vehicleId: string, direction: -1 | 1) => {
+          void moveVehicle(vehicles, vehicleId, direction)
+            .then(setVehicles)
+            .catch((error) => {
+              console.error(error)
+              window.alert('Die Reihenfolge konnte nicht gespeichert werden.')
+            })
+        }
+
+        return (
+          <section
+            className="vehicle-section"
+            key={section}
+          >
+            <div className="section-heading">
+              <h2>{section}</h2>
+              <div className="section-heading-actions">
+                {sectionVehicles.length > 1 && (
+                  <button
+                    className={`sort-toggle${isSorting ? ' sort-toggle-active' : ''}`}
+                    onClick={() =>
+                      setSortingSection(isSorting ? null : section)
+                    }
+                  >
+                    {isSorting ? 'Fertig' : 'Sortieren'}
+                  </button>
+                )}
+                <span>{sectionVehicles.length}</span>
+              </div>
+            </div>
+
+            <div className="vehicle-list">
+              {sectionVehicles.map((vehicle, index) => (
+                <article
+                  className={`vehicle-card${isSorting ? ' vehicle-card-sorting' : ''}`}
+                  key={vehicle.id}
+                  onClick={() => {
+                    if (!isSorting) setSelectedVehicle(vehicle)
+                  }}
+                >
+                 <div className="vehicle-image">
+  {vehicle.photo ? (
+    <img
+      src={vehicle.photo}
+      alt={vehicle.name}
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        borderRadius: 'inherit',
+        display: 'block',
+      }}
+    />
+  ) : (
+    <span>{vehicle.icon}</span>
+  )}
+</div>
+
+                  <div className="vehicle-content">
+                    <p className="vehicle-category">
+                      {vehicle.category}
+                    </p>
+
+                    <h3>{vehicle.name}</h3>
+
+                    <p>{vehicle.description}</p>
+
+                    <strong>{vehicle.info}</strong>
+
+                    {collectDueItems([vehicle]).map((item) => (
+                      <span
+                        key={item.kind}
+                        className={`due-badge due-badge-${item.level}`}
+                      >
+                        {item.kind} {item.label}
+                      </span>
+                    ))}
+                  </div>
+
+                  {isSorting ? (
+                    <div className="sort-buttons">
+                      <button
+                        aria-label={`${vehicle.name} nach oben`}
+                        disabled={index === 0}
+                        onClick={() => move(vehicle.id, -1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        aria-label={`${vehicle.name} nach unten`}
+                        disabled={index === sectionVehicles.length - 1}
+                        onClick={() => move(vehicle.id, 1)}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="arrow">›</div>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        )
+      })}
+
+      <section className="vehicle-data start-dashboard">
   <h2>Dashboard Freizeit</h2>
 
   <div className="vehicle-data-grid">
@@ -3459,76 +3574,6 @@ km
 </div>
   </div>
 </section>
-      {sections.map((section) => {
-        const sectionVehicles = vehicles.filter(
-          (vehicle) => vehicle.category === section,
-        )
-
-        return (
-          <section
-            className="vehicle-section"
-            key={section}
-          >
-            <div className="section-heading">
-              <h2>{section}</h2>
-              <span>{sectionVehicles.length}</span>
-            </div>
-
-            <div className="vehicle-list">
-              {sectionVehicles.map((vehicle) => (
-                <article
-                  className="vehicle-card"
-                  key={vehicle.id}
-                  onClick={() =>
-                    setSelectedVehicle(vehicle)
-                  }
-                >
-                 <div className="vehicle-image">
-  {vehicle.photo ? (
-    <img
-      src={vehicle.photo}
-      alt={vehicle.name}
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        borderRadius: 'inherit',
-        display: 'block',
-      }}
-    />
-  ) : (
-    <span>{vehicle.icon}</span>
-  )}
-</div>
-
-                  <div className="vehicle-content">
-                    <p className="vehicle-category">
-                      {vehicle.category}
-                    </p>
-
-                    <h3>{vehicle.name}</h3>
-
-                    <p>{vehicle.description}</p>
-
-                    <strong>{vehicle.info}</strong>
-
-                    {collectDueItems([vehicle]).map((item) => (
-                      <span
-                        key={item.kind}
-                        className={`due-badge due-badge-${item.level}`}
-                      >
-                        {item.kind} {item.label}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="arrow">›</div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )
-      })}
 
       <BackupSection />
     </main>

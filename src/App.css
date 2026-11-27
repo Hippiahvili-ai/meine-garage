@@ -252,6 +252,11 @@ h1 {
   margin-bottom: 28px;
 }
 
+/* Dashboard steht unter den Fahrzeugen → gleicher Abstand wie die Bereiche */
+.vehicle-data.start-dashboard {
+  margin-top: 34px;
+}
+
 .vehicle-data h2 {
   margin: 0 0 14px;
   font-size: 20px;
@@ -991,4 +996,58 @@ label > input[type='checkbox'] {
 
 .backup-section > .backup-last-old {
   color: #b45309;
+}
+
+/* --- Fahrzeuge sortieren --- */
+
+.section-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-toggle {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #6b7280;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sort-toggle-active {
+  background: #171717;
+  color: white;
+}
+
+.vehicle-card-sorting {
+  grid-template-columns: 92px 1fr 44px;
+  border-color: #d1d5db;
+  cursor: default;
+}
+
+.sort-buttons {
+  display: grid;
+  gap: 6px;
+}
+
+.sort-buttons button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #171717;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sort-buttons button:disabled {
+  opacity: 0.3;
+  cursor: default;
 }

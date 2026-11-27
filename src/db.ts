@@ -30,6 +30,8 @@ export type VehicleRecord = {
   info: string
   icon: string
   photo?: string
+  /** Position innerhalb des Bereichs auf der Startseite (klein = oben) */
+  sortOrder?: number
 
   year: number | null
   firstRegistration: string | null
