@@ -1136,3 +1136,75 @@ label > input[type='checkbox'] {
   gap: 10px;
   justify-items: start;
 }
+
+/* --- Fahrt: Schnellknopf, laufende Fahrt --- */
+
+.quick-trip-button {
+  width: 100%;
+  min-height: 52px;
+  margin: 4px 0 8px;
+  border: 0;
+  border-radius: 16px;
+  background: #171717;
+  color: white;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.running-trip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.running-trip strong {
+  display: block;
+  font-size: 16px;
+}
+
+.running-trip span {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+.running-trip button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #15803d;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.trip-form-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.trip-form-hint {
+  display: block;
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.vehicle-content .running-badge {
+  background: #dcfce7;
+  color: #15803d;
+}

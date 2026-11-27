@@ -164,6 +164,20 @@ function App() {
   const [mileageHistory, setMileageHistory] = useState<MileageEntry[]>([])
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>([])
   const [tripEntries, setTripEntries] = useState<TripEntry[]>([])
+  /** Springt zum Fahrt-Formular, sobald es sichtbar ist */
+  const scrollToTripForm = () =>
+    window.setTimeout(
+      () =>
+        document
+          .getElementById('trip-form')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      50,
+    )
+  /** Laufende (noch nicht beendete) Fahrt eines Fahrzeugs */
+  const runningTripFor = (vehicleId: string) =>
+    tripEntries.find(
+      (entry) => entry.vehicleId === vehicleId && entry.inProgress,
+    )
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([])
   const [purchaseEntries, setPurchaseEntries] =
   useState<PurchaseEntry[]>([])
@@ -946,6 +960,7 @@ setIsWorkFormOpen(false)
   setTripDestination(entry.destination)
   setTripNote(entry.note)
   setIsTripFormOpen(true)
+  scrollToTripForm()
 }
 const deleteTripEntry = async (entry: TripEntry) => {
   const confirmed = window.confirm(
@@ -990,21 +1005,44 @@ const findLinkedMileageEntryForTrip = async (
   )
 }
 const saveTripEntry = async () => {
-  if (
-  !selectedVehicle ||
-  !tripDate ||
-  (selectedVehicle.category !== 'Wohnwagen' &&
-    !tripStartMileage) ||
-  !tripEndMileage
-) {
+  if (!selectedVehicle) {
     return
   }
 
-  const startMileage =
-  selectedVehicle.category === 'Wohnwagen'
-    ? 0
-    : Number(tripStartMileage)
-  const endMileage = Number(tripEndMileage)
+  const isCaravan = selectedVehicle.category === 'Wohnwagen'
+  const existingTrip = editingTripId
+    ? tripEntries.find((entry) => entry.id === editingTripId)
+    : undefined
+
+  if (!tripDate) {
+    window.alert('Bitte ein Datum eintragen.')
+    return
+  }
+  if (!isCaravan && !tripStartMileage.trim()) {
+    window.alert('Bitte den Start-Kilometerstand eintragen.')
+    return
+  }
+
+  // Nur Start-km → Fahrt läuft noch und wird später beendet
+  const isOpenTrip = !isCaravan && !tripEndMileage.trim()
+
+  if (isCaravan && !tripEndMileage.trim()) {
+    window.alert('Bitte die gefahrenen Kilometer eintragen.')
+    return
+  }
+  if (isOpenTrip && existingTrip && !existingTrip.inProgress) {
+    window.alert('Bitte den End-Kilometerstand eintragen.')
+    return
+  }
+  if (isOpenTrip && !existingTrip && runningTripFor(selectedVehicle.id)) {
+    window.alert(
+      'Für dieses Fahrzeug läuft schon eine Fahrt. Beende sie zuerst oben mit „Fahrt beenden“.',
+    )
+    return
+  }
+
+  const startMileage = isCaravan ? 0 : Number(tripStartMileage)
+  const endMileage = isOpenTrip ? startMileage : Number(tripEndMileage)
 if (
   selectedVehicle.category !== 'Wohnwagen' &&
   !editingTripId &&
@@ -1040,6 +1078,12 @@ if (endMileage < startMileage) {
     startLocation: tripStartLocation.trim(),
     destination: tripDestination.trim(),
     note: tripNote.trim(),
+    ...(isOpenTrip
+      ? {
+          inProgress: true,
+          startedAt: existingTrip?.startedAt ?? new Date().toISOString(),
+        }
+      : {}),
   }
 
   if (editingTripId) {
@@ -1615,191 +1659,66 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
           </div>
         </section>
 
-        <section className="vehicle-data">
-          <h2>Fahrzeugdaten</h2>
+        {(() => {
+          const runningTrip = runningTripFor(selectedVehicle.id)
+          const hasTrips =
+            selectedVehicle.category === 'Freizeit' ||
+            selectedVehicle.category === 'Wohnwagen'
 
-          <div className="vehicle-data-grid">
-            <div>
-              <span>Hersteller</span>
-              <strong>
-                {selectedVehicle.manufacturer}
-              </strong>
-            </div>
+          if (runningTrip) {
+            return (
+              <div className="running-trip">
+                <div>
+                  <strong>Fahrt läuft</strong>
+                  <span>
+                    {runningTrip.startedAt
+                      ? `seit ${new Date(runningTrip.startedAt).toLocaleString('de-DE', {
+                          weekday: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })} Uhr · `
+                      : ''}
+                    Start {runningTrip.startMileage.toLocaleString('de-DE')} km
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    startEditingTrip(runningTrip)
+                    setIsFuelFormOpen(false)
+                    setIsPurchaseFormOpen(false)
+                  }}
+                >
+                  Fahrt beenden
+                </button>
+              </div>
+            )
+          }
 
-            <div>
-              <span>Modell</span>
-              <strong>{selectedVehicle.model}</strong>
-            </div>
+          if (!hasTrips) return null
 
-            <div>
-              <span>Baujahr</span>
-              <strong>
-                {selectedVehicle.year ??
-                  'Noch nicht eingetragen'}
-              </strong>
-            </div>
+          return (
+            <button
+              className="quick-trip-button"
+              onClick={() => {
+                if (!isTripFormOpen) {
+                  setIsEditing(false)
+                  setIsMileageFormOpen(false)
+                  setIsWorkFormOpen(false)
+                  setIsFuelFormOpen(false)
+                  setIsPurchaseFormOpen(false)
+                  resetTripForm()
+                  setIsTripFormOpen(true)
+                }
+                scrollToTripForm()
+              }}
+            >
+              {selectedVehicle.category === 'Wohnwagen'
+                ? '+ Reise eintragen'
+                : '+ Fahrt'}
+            </button>
+          )
+        })()}
 
-            <div>
-              <span>Erstzulassung</span>
-              <strong>
-                {selectedVehicle.firstRegistration ??
-                  'Noch nicht eingetragen'}
-              </strong>
-            </div>
-
-            <div>
-              <span>Kennzeichen</span>
-              <strong>
-                {selectedVehicle.licensePlate ??
-                  'Noch nicht eingetragen'}
-              </strong>
-            </div>
-
-           {selectedVehicle.category !== 'Wohnwagen' && (
-  <div>
-    <span>Kilometerstand</span>
-    <strong>
-      {latestMileage !== null
-        ? `${latestMileage.toLocaleString(
-            'de-DE',
-          )} km`
-        : 'Noch nicht eingetragen'}
-    </strong>
-  </div>
-)}
-  <div
-  className={`due-${
-    collectDueItems([selectedVehicle])[0]?.level ?? 'ok'
-  }`}
-  style={{
-    gridColumn:
-      selectedVehicle.category === 'Wohnwagen'
-        ? 'auto'
-        : '1 / -1',
-  }}
->
-  <span>
-  {selectedVehicle.category === 'Wohnwagen'
-    ? 'HU & Gasprüfung'
-    : 'Nächste HU'}
-</span>
-  <strong>
-    {selectedVehicle.category === 'Wohnwagen'
-  ? selectedVehicle.nextHu ??
-    selectedVehicle.nextGasInspection ??
-    'Noch nicht eingetragen'
-  : selectedVehicle.nextHu ??
-    'Noch nicht eingetragen'}
-  </strong>
-</div>
-
-          </div>
-        </section>
-
-        <section className="vehicle-data">
-          <h2>Kosten & Auswertung</h2>
-
-          <div className="vehicle-data-grid">
-
-
-
-<div className="cost-filter-card">
-  <span>Kosten pro Jahr</span>
-  <select
-    value={costYear}
-    onChange={(event) => {
-  const newYear = event.target.value
-  setCostYear(newYear)
-
-  if (newYear === 'all') {
-    setCostMonth('all')
-  }
-}}
-    >
-    <option value="all">Alle Jahre</option>
-   {Array.from(
-  new Set([
-    String(new Date().getFullYear()),
-    ...selectedFuelEntries.map(
-      (entry) => entry.date.slice(0, 4),
-    ),
-    ...selectedWorkEntries.map(
-      (entry) => entry.date.slice(0, 4),
-    ),
-  ]),
-)
-  .sort((a, b) => b.localeCompare(a))
-  .map((year) => (
-    <option key={year} value={year}>
-      {year}
-    </option>
-  ))}
-  </select>
-</div>
-<div className="cost-filter-card">
-  <span>Kosten pro Monat</span>
-  <select
-    value={costMonth}
-    disabled={costYear === 'all'}
-    onChange={(event) =>
-      setCostMonth(event.target.value)
-    }
-  >
-    <option value="all">Ganzes Jahr</option>
-    <option value="01">Januar</option>
-    <option value="02">Februar</option>
-    <option value="03">März</option>
-    <option value="04">April</option>
-    <option value="05">Mai</option>
-    <option value="06">Juni</option>
-    <option value="07">Juli</option>
-    <option value="08">August</option>
-    <option value="09">September</option>
-    <option value="10">Oktober</option>
-    <option value="11">November</option>
-    <option value="12">Dezember</option>
-  </select>
-</div>
-
-<div>
-  <span>Erfasste Gesamtkosten</span>
-  <strong>
-  {formatCurrency(
-   selectedVehicle.category === 'Wohnwagen'
-  ? filteredWorkTotal + filteredPurchaseTotal
-  : filteredWorkTotal + filteredFuelTotal,
-  )}
-</strong>
-</div>
-{selectedVehicle.category !== 'Wohnwagen' && (
-  <div>
-    <span>Tankkosten</span>
-    <strong>
-      {formatCurrency(filteredFuelTotal)}
-    </strong>
-  </div>
-)}
-<div>
-  <span>Werkstattkosten</span>
-  <strong>
-  {formatCurrency(filteredWorkTotal)}
-</strong>
-</div>
-{selectedVehicle.category.trim() === 'Wohnwagen' && (
-  <div>
-    <span>Anschaffungskosten</span>
-    <strong>
-      {formatCurrency(filteredPurchaseTotal)}
-    </strong>
-  </div>
-)}
-
-
-            
-
-           
-          </div>
-        </section>
  <button
           className={`edit-button vehicle-edit-button ${
   isEditing ? 'edit-button-active' : ''
@@ -2631,22 +2550,22 @@ latestFuelStats.costPer100Km !== null ? (
 </h2>
     <p className="mileage-meta">
   {tripEntries.filter(
-    (entry) => entry.vehicleId === selectedVehicle.id,
+    (entry) => entry.vehicleId === selectedVehicle.id && !entry.inProgress,
   ).length}{' '}
   {selectedVehicle.category === 'Wohnwagen'
   ? tripEntries.filter(
-      (entry) => entry.vehicleId === selectedVehicle.id,
+      (entry) => entry.vehicleId === selectedVehicle.id && !entry.inProgress,
     ).length === 1
     ? 'Reise'
     : 'Reisen'
   : tripEntries.filter(
-      (entry) => entry.vehicleId === selectedVehicle.id,
+      (entry) => entry.vehicleId === selectedVehicle.id && !entry.inProgress,
     ).length === 1
     ? 'Fahrt'
     : 'Fahrten'}{' · '}
   {tripEntries
     .filter(
-      (entry) => entry.vehicleId === selectedVehicle.id,
+      (entry) => entry.vehicleId === selectedVehicle.id && !entry.inProgress,
     )
     .reduce(
       (sum, entry) =>
@@ -2657,13 +2576,13 @@ latestFuelStats.costPer100Km !== null ? (
   km gesamt
   {' · Ø '}
 {tripEntries.filter(
-  (entry) => entry.vehicleId === selectedVehicle.id,
+  (entry) => entry.vehicleId === selectedVehicle.id && !entry.inProgress,
 ).length > 0
   ? Math.round(
       tripEntries
         .filter(
           (entry) =>
-            entry.vehicleId === selectedVehicle.id,
+            entry.vehicleId === selectedVehicle.id && !entry.inProgress,
         )
         .reduce(
           (sum, entry) =>
@@ -2673,7 +2592,7 @@ latestFuelStats.costPer100Km !== null ? (
         ) /
         tripEntries.filter(
           (entry) =>
-            entry.vehicleId === selectedVehicle.id,
+            entry.vehicleId === selectedVehicle.id && !entry.inProgress,
         ).length,
     ).toLocaleString('de-DE')
   : 0}{' '}
@@ -2683,7 +2602,7 @@ km/{selectedVehicle.category === 'Wohnwagen' ? 'Reise' : 'Fahrt'}
   0,
   ...tripEntries
     .filter(
-      (entry) => entry.vehicleId === selectedVehicle.id,
+      (entry) => entry.vehicleId === selectedVehicle.id && !entry.inProgress,
     )
     .map(
       (entry) =>
@@ -2713,7 +2632,10 @@ km
 </button>
 
 {isTripFormOpen && (
-  <div className="trip-form">
+  <div className="trip-form" id="trip-form">
+    {editingTripId && runningTripFor(selectedVehicle.id)?.id === editingTripId && (
+      <p className="trip-form-title">Fahrt beenden</p>
+    )}
     <label>
       Datum
       <input
@@ -2758,6 +2680,14 @@ km
         : 'z. B. 24923'
     }
   />
+  {selectedVehicle.category !== 'Wohnwagen' &&
+    (!editingTripId ||
+      runningTripFor(selectedVehicle.id)?.id === editingTripId) && (
+      <span className="trip-form-hint">
+        Leer lassen, wenn du gerade losfährst – du kannst die Fahrt später
+        oben mit „Fahrt beenden“ abschließen.
+      </span>
+    )}
 </label>
 
 <label>
@@ -2800,7 +2730,9 @@ km
 >
   {selectedVehicle.category === 'Wohnwagen'
   ? 'Reise speichern'
-  : 'Fahrt speichern'}
+  : !tripEndMileage.trim()
+    ? 'Fahrt starten (End-km später)'
+    : 'Fahrt speichern'}
 </button>
   </div>
 )}
@@ -2847,10 +2779,11 @@ km
   </strong>
 
   <span className="trip-distance">
-    {(entry.endMileage - entry.startMileage).toLocaleString(
-      'de-DE',
-    )}{' '}
-    km
+    {entry.inProgress
+      ? 'läuft'
+      : `${(entry.endMileage - entry.startMileage).toLocaleString(
+          'de-DE',
+        )} km`}
   </span>
 </div>
 
@@ -2867,7 +2800,9 @@ km
     ? `${(
         entry.endMileage - entry.startMileage
       ).toLocaleString('de-DE')} km gefahren`
-    : `${entry.startMileage.toLocaleString(
+    : entry.inProgress
+      ? `Start ${entry.startMileage.toLocaleString('de-DE')} km · Fahrt läuft noch`
+      : `${entry.startMileage.toLocaleString(
         'de-DE',
       )} km → ${entry.endMileage.toLocaleString(
         'de-DE',
@@ -3059,6 +2994,192 @@ km
         </section>
 
        
+
+        <section className="vehicle-data">
+          <h2>Fahrzeugdaten</h2>
+
+          <div className="vehicle-data-grid">
+            <div>
+              <span>Hersteller</span>
+              <strong>
+                {selectedVehicle.manufacturer}
+              </strong>
+            </div>
+
+            <div>
+              <span>Modell</span>
+              <strong>{selectedVehicle.model}</strong>
+            </div>
+
+            <div>
+              <span>Baujahr</span>
+              <strong>
+                {selectedVehicle.year ??
+                  'Noch nicht eingetragen'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Erstzulassung</span>
+              <strong>
+                {selectedVehicle.firstRegistration ??
+                  'Noch nicht eingetragen'}
+              </strong>
+            </div>
+
+            <div>
+              <span>Kennzeichen</span>
+              <strong>
+                {selectedVehicle.licensePlate ??
+                  'Noch nicht eingetragen'}
+              </strong>
+            </div>
+
+           {selectedVehicle.category !== 'Wohnwagen' && (
+  <div>
+    <span>Kilometerstand</span>
+    <strong>
+      {latestMileage !== null
+        ? `${latestMileage.toLocaleString(
+            'de-DE',
+          )} km`
+        : 'Noch nicht eingetragen'}
+    </strong>
+  </div>
+)}
+  <div
+  className={`due-${
+    collectDueItems([selectedVehicle])[0]?.level ?? 'ok'
+  }`}
+  style={{
+    gridColumn:
+      selectedVehicle.category === 'Wohnwagen'
+        ? 'auto'
+        : '1 / -1',
+  }}
+>
+  <span>
+  {selectedVehicle.category === 'Wohnwagen'
+    ? 'HU & Gasprüfung'
+    : 'Nächste HU'}
+</span>
+  <strong>
+    {selectedVehicle.category === 'Wohnwagen'
+  ? selectedVehicle.nextHu ??
+    selectedVehicle.nextGasInspection ??
+    'Noch nicht eingetragen'
+  : selectedVehicle.nextHu ??
+    'Noch nicht eingetragen'}
+  </strong>
+</div>
+
+          </div>
+        </section>
+
+        <section className="vehicle-data">
+          <h2>Kosten & Auswertung</h2>
+
+          <div className="vehicle-data-grid">
+
+
+
+<div className="cost-filter-card">
+  <span>Kosten pro Jahr</span>
+  <select
+    value={costYear}
+    onChange={(event) => {
+  const newYear = event.target.value
+  setCostYear(newYear)
+
+  if (newYear === 'all') {
+    setCostMonth('all')
+  }
+}}
+    >
+    <option value="all">Alle Jahre</option>
+   {Array.from(
+  new Set([
+    String(new Date().getFullYear()),
+    ...selectedFuelEntries.map(
+      (entry) => entry.date.slice(0, 4),
+    ),
+    ...selectedWorkEntries.map(
+      (entry) => entry.date.slice(0, 4),
+    ),
+  ]),
+)
+  .sort((a, b) => b.localeCompare(a))
+  .map((year) => (
+    <option key={year} value={year}>
+      {year}
+    </option>
+  ))}
+  </select>
+</div>
+<div className="cost-filter-card">
+  <span>Kosten pro Monat</span>
+  <select
+    value={costMonth}
+    disabled={costYear === 'all'}
+    onChange={(event) =>
+      setCostMonth(event.target.value)
+    }
+  >
+    <option value="all">Ganzes Jahr</option>
+    <option value="01">Januar</option>
+    <option value="02">Februar</option>
+    <option value="03">März</option>
+    <option value="04">April</option>
+    <option value="05">Mai</option>
+    <option value="06">Juni</option>
+    <option value="07">Juli</option>
+    <option value="08">August</option>
+    <option value="09">September</option>
+    <option value="10">Oktober</option>
+    <option value="11">November</option>
+    <option value="12">Dezember</option>
+  </select>
+</div>
+
+<div>
+  <span>Erfasste Gesamtkosten</span>
+  <strong>
+  {formatCurrency(
+   selectedVehicle.category === 'Wohnwagen'
+  ? filteredWorkTotal + filteredPurchaseTotal
+  : filteredWorkTotal + filteredFuelTotal,
+  )}
+</strong>
+</div>
+{selectedVehicle.category !== 'Wohnwagen' && (
+  <div>
+    <span>Tankkosten</span>
+    <strong>
+      {formatCurrency(filteredFuelTotal)}
+    </strong>
+  </div>
+)}
+<div>
+  <span>Werkstattkosten</span>
+  <strong>
+  {formatCurrency(filteredWorkTotal)}
+</strong>
+</div>
+{selectedVehicle.category.trim() === 'Wohnwagen' && (
+  <div>
+    <span>Anschaffungskosten</span>
+    <strong>
+      {formatCurrency(filteredPurchaseTotal)}
+    </strong>
+  </div>
+)}
+
+
+            
+
+           
+          </div>
+        </section>
 
         <section className="detail-grid">
           {selectedVehicle.category === 'Freizeit' && (
@@ -3476,6 +3597,12 @@ km
                     <p>{vehicle.description}</p>
 
                     <strong>{vehicle.info}</strong>
+
+                    {runningTripFor(vehicle.id) && (
+                      <span className="due-badge running-badge">
+                        Fahrt läuft
+                      </span>
+                    )}
 
                     {collectDueItems([vehicle]).map((item) => (
                       <span

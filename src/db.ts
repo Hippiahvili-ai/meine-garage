@@ -92,6 +92,11 @@ export type TripEntry = {
   note: string
 
   googleMapsUrl?: string
+
+  /** Fahrt läuft noch: nur Start-km bekannt, endMileage = startMileage */
+  inProgress?: boolean
+  /** Wann die laufende Fahrt gespeichert wurde (ISO) */
+  startedAt?: string
 }
 export type FuelEntry = {
   id: string
