@@ -861,3 +861,134 @@ label > input[type='checkbox'] {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* --- Hinweise: fällige Termine & Datensicherung --- */
+
+.start-reminders {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.reminder {
+  display: grid;
+  grid-template-columns: 32px 1fr 16px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.reminder-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.reminder-text strong {
+  display: block;
+  font-size: 15px;
+}
+
+.reminder-text span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.reminder-arrow {
+  font-size: 22px;
+  opacity: 0.5;
+}
+
+.reminder-overdue {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.reminder-overdue .reminder-icon {
+  background: #dc2626;
+  color: white;
+}
+
+.reminder-soon {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.reminder-soon .reminder-icon {
+  background: #fde68a;
+}
+
+.reminder-backup {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+.reminder-backup .reminder-icon {
+  background: #dbeafe;
+}
+
+/* Kacheln „Nächste HU“ einfärben */
+.vehicle-data-grid > .due-overdue {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.vehicle-data-grid > .due-overdue strong {
+  color: #b91c1c;
+}
+
+.vehicle-data-grid > .due-soon {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.vehicle-data-grid > .due-soon strong {
+  color: #92400e;
+}
+
+/* Kennzeichnung auf den Fahrzeugkarten */
+.vehicle-content .due-badge {
+  display: inline-block;
+  margin: 8px 6px 0 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.due-badge-overdue {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.due-badge-soon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Datensicherung: Zeitpunkt der letzten Sicherung */
+.backup-section > .backup-last {
+  margin-top: -6px;
+  font-size: 14px;
+  color: #15803d;
+}
+
+.backup-section > .backup-last-old {
+  color: #b45309;
+}

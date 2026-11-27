@@ -13,6 +13,8 @@ import {
 } from './db'
 import { BackupSection } from './BackupSection'
 import { AddVehicleForm } from './AddVehicleForm'
+import { StartReminders } from './StartReminders'
+import { collectDueItems, dueStatus } from './reminders'
 import { readPhotoResized } from './photo'
 import {
   TABLE_LABELS,
@@ -1665,6 +1667,9 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
   </div>
 )}
   <div
+  className={`due-${
+    collectDueItems([selectedVehicle])[0]?.level ?? 'ok'
+  }`}
   style={{
     gridColumn:
       selectedVehicle.category === 'Wohnwagen'
@@ -3393,6 +3398,14 @@ km
           onCancel={() => setIsAddVehicleFormOpen(false)}
         />
       )}
+
+      <StartReminders
+        vehicles={vehicles}
+        onOpenVehicle={(vehicle) => {
+          setSelectedVehicle(vehicle)
+          window.scrollTo(0, 0)
+        }}
+      />
 <section className="vehicle-data">
   <h2>Dashboard Freizeit</h2>
 
@@ -3430,7 +3443,13 @@ km
   </strong>
 </div>
 
-<div>
+<div
+  className={
+    nextHuVehicle
+      ? `due-${dueStatus(nextHuVehicle.vehicle.nextHu)?.level ?? 'ok'}`
+      : undefined
+  }
+>
   <span>Nächste HU</span>
   <strong>
     {nextHuVehicle
@@ -3492,6 +3511,15 @@ km
                     <p>{vehicle.description}</p>
 
                     <strong>{vehicle.info}</strong>
+
+                    {collectDueItems([vehicle]).map((item) => (
+                      <span
+                        key={item.kind}
+                        className={`due-badge due-badge-${item.level}`}
+                      >
+                        {item.kind} {item.label}
+                      </span>
+                    ))}
                   </div>
 
                   <div className="arrow">›</div>

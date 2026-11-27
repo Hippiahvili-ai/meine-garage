@@ -12,6 +12,7 @@ import {
   type BackupCounts,
   type PreparedBackup,
 } from './backup'
+import { BACKUP_REMINDER_DAYS, daysSince, markBackupDone, useLastBackup } from './reminders'
 
 type Status = { kind: 'ok' | 'error'; text: string } | null
 
@@ -33,6 +34,7 @@ export function BackupSection() {
   /** iPhone: vorbereitete Datei, die mit dem zweiten Tipp geteilt wird */
   const [prepared, setPrepared] = useState<PreparedBackup | null>(null)
   const [safetyCopy, setSafetyCopy] = useState<{ date: string; reason: string } | null>(null)
+  const lastBackup = useLastBackup()
 
   useEffect(() => {
     void getSafetyCopy().then((copy) =>
@@ -53,6 +55,7 @@ export function BackupSection() {
         return
       }
       await saveBackupFile(backup.file)
+      markBackupDone()
       setStatus({ kind: 'ok', text: `Sicherung erstellt (${totalOf(backup.counts)} Einträge).` })
     } catch (error) {
       console.error(error)
@@ -68,6 +71,7 @@ export function BackupSection() {
     const { file, counts } = prepared
     void saveBackupFile(file).then((saved) => {
       if (saved) {
+        markBackupDone()
         setPrepared(null)
         setStatus({ kind: 'ok', text: `Sicherung gespeichert (${totalOf(counts)} Einträge).` })
       } else {
@@ -131,11 +135,20 @@ export function BackupSection() {
   }
 
   return (
-    <section className="backup-section">
+    <section className="backup-section" id="datensicherung">
       <h2>Datensicherung</h2>
       <p>
         Alle Fahrzeuge, Fahrten, Tankvorgänge, Werkstatt-Einträge und Ausgaben
         als Datei sichern oder aus einer Sicherung wiederherstellen.
+      </p>
+      <p
+        className={`backup-last${
+          !lastBackup || daysSince(lastBackup) >= BACKUP_REMINDER_DAYS ? ' backup-last-old' : ''
+        }`}
+      >
+        {lastBackup
+          ? `Letzte Sicherung: ${formatDate(lastBackup)}`
+          : 'Auf diesem Gerät wurde noch keine Sicherung erstellt.'}
       </p>
 
       {prepared ? (
