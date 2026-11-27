@@ -7,6 +7,7 @@ import {
   type MileageEntry,
   type MileageSource,
   type VehicleRecord,
+  type PhotoCrop,
   type WorkEntry,
   type PurchaseEntry,
   type WorkType,
@@ -17,6 +18,7 @@ import { StartReminders } from './StartReminders'
 import { moveVehicle, sortVehicles } from './vehicleOrder'
 import { collectDueItems, dueStatus } from './reminders'
 import { readPhotoResized } from './photo'
+import { PhotoCropEditor, VehiclePhoto } from './VehiclePhoto'
 import {
   TABLE_LABELS,
   countVehicleEntries,
@@ -220,6 +222,7 @@ const [tripStartMileage, setTripStartMileage] =
   const [editNextHu, setEditNextHu] = useState('')
   const [editNextGasInspection, setEditNextGasInspection] = useState('')
   const [editPhoto, setEditPhoto] = useState('')
+  const [editPhotoCrop, setEditPhotoCrop] = useState<PhotoCrop | undefined>(undefined)
 
   const [isWorkFormOpen, setIsWorkFormOpen] = useState(false)
   const [isPurchaseFormOpen, setIsPurchaseFormOpen] =
@@ -1294,6 +1297,7 @@ const saveVehicleChanges = async () => {
       nextHu: editNextHu.trim() || null,
       nextGasInspection: editNextGasInspection.trim() || null,
       photo: editPhoto || undefined,
+      photoCrop: editPhoto ? editPhotoCrop : undefined,
     }
 
     await db.vehicles.put(updatedVehicle)
@@ -1588,16 +1592,10 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
         <section className="detail-header">
           <div className="detail-icon">
   {selectedVehicle.photo ? (
-    <img
+    <VehiclePhoto
       src={selectedVehicle.photo}
       alt={selectedVehicle.name}
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        borderRadius: 'inherit',
-        display: 'block',
-      }}
+      crop={selectedVehicle.photoCrop}
     />
   ) : (
     selectedVehicle.icon
@@ -1836,6 +1834,7 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
                 selectedVehicle.nextGasInspection ?? '',
               )
               setEditPhoto(selectedVehicle.photo ?? '')
+              setEditPhotoCrop(selectedVehicle.photoCrop)
             }
 
             setIsEditing(!isEditing)
@@ -1861,36 +1860,36 @@ const deletePurchaseEntry = async (entry: PurchaseEntry) => {
       }
 
       readPhotoResized(file)
-        .then(setEditPhoto)
+        .then((photo) => {
+          setEditPhoto(photo)
+          setEditPhotoCrop(undefined)
+        })
         .catch(() =>
           window.alert('Das Foto konnte nicht gelesen werden.'),
         )
     }}
   />
-  {editPhoto && (
-  <>
-    <img
+</label>
+{editPhoto && (
+  <div className="edit-photo-block">
+    <PhotoCropEditor
       src={editPhoto}
-      alt="Fahrzeugvorschau"
-      style={{
-        width: '120px',
-        height: '120px',
-        objectFit: 'cover',
-        borderRadius: '16px',
-        marginTop: '12px',
-      }}
+      crop={editPhotoCrop}
+      onChange={setEditPhotoCrop}
     />
 
     <button
       type="button"
       className="entry-delete-button"
-      onClick={() => setEditPhoto('')}
+      onClick={() => {
+        setEditPhoto('')
+        setEditPhotoCrop(undefined)
+      }}
     >
       Foto entfernen
     </button>
-  </>
+  </div>
 )}
-</label>
             <label>
               Hersteller
               <input
@@ -3457,16 +3456,10 @@ km
                 >
                  <div className="vehicle-image">
   {vehicle.photo ? (
-    <img
+    <VehiclePhoto
       src={vehicle.photo}
       alt={vehicle.name}
-      style={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        borderRadius: 'inherit',
-        display: 'block',
-      }}
+      crop={vehicle.photoCrop}
     />
   ) : (
     <span>{vehicle.icon}</span>

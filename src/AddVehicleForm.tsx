@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { db, type VehicleRecord } from './db'
+import { db, type PhotoCrop, type VehicleRecord } from './db'
+import { PhotoCropEditor } from './VehiclePhoto'
 import { readPhotoResized } from './photo'
 
 type Category = VehicleRecord['category']
@@ -31,6 +32,7 @@ export function AddVehicleForm({ onAdded, onCancel }: Props) {
   const [description, setDescription] = useState('')
   const [licensePlate, setLicensePlate] = useState('')
   const [photo, setPhoto] = useState('')
+  const [photoCrop, setPhotoCrop] = useState<PhotoCrop | undefined>(undefined)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -56,6 +58,7 @@ export function AddVehicleForm({ onAdded, onCancel }: Props) {
       info: defaults.info,
       icon,
       photo: photo || undefined,
+      photoCrop: photo ? photoCrop : undefined,
       year: null,
       firstRegistration: null,
       licensePlate: licensePlate.trim() || null,
@@ -174,12 +177,19 @@ export function AddVehicleForm({ onAdded, onCancel }: Props) {
             const file = event.target.files?.[0]
             if (!file) return
             readPhotoResized(file)
-              .then(setPhoto)
+              .then((next) => {
+                setPhoto(next)
+                setPhotoCrop(undefined)
+              })
               .catch(() => setError('Das Foto konnte nicht gelesen werden.'))
           }}
         />
       </label>
-      {photo && <img className="add-vehicle-photo" src={photo} alt="Fahrzeugvorschau" />}
+      {photo && (
+        <div className="add-vehicle-photo">
+          <PhotoCropEditor src={photo} crop={photoCrop} onChange={setPhotoCrop} />
+        </div>
+      )}
 
       <p className="add-vehicle-hint">
         Baujahr, Erstzulassung, HU und Kilometerstand trägst du danach auf der

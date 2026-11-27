@@ -20,6 +20,9 @@ export type MileageEntry = {
   tripEntryId?: string
 }
 
+/** Bildausschnitt: Mittelpunkt in Prozent des Fotos, Zoom ab 1 */
+export type PhotoCrop = { x: number; y: number; zoom: number }
+
 export type VehicleRecord = {
   id: string
   name: string
@@ -30,6 +33,8 @@ export type VehicleRecord = {
   info: string
   icon: string
   photo?: string
+  /** Gewählter Bildausschnitt fürs Foto (ohne = Mitte, kein Zoom) */
+  photoCrop?: PhotoCrop
   /** Position innerhalb des Bereichs auf der Startseite (klein = oben) */
   sortOrder?: number
 
